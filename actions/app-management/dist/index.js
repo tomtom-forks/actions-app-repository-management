@@ -68,14 +68,18 @@ async function validateApps (applications, knownApps, orgName, context, octokit)
   // ensure we track both name and id so that the comments can be descriptive
   // Add a comment if we can't find an application id for an entry
   // Fail and close if no valid applications supplied
-  const { data: installedApps } = await octokit.adminOctokit.orgs.listAppInstallations({
-    org: orgName
-  })
+  const installedApps = await octokit.adminOctokit.paginate(octokit.adminOctokit.orgs.listAppInstallations, {
+    org: orgName,
+    per_page: 100,
+  });
+
   // Index the apps by name
-  const installedAppMap = installedApps.installations.reduce((acc, installation) => {
-    acc[installation.app_slug] = installation
-    return acc
-  }, {})
+  const installedAppMap = {}
+  if (installedApps.length > 0) {
+    for (const installation of installedApps) {
+      installedAppMap[installation.app_slug] = installation
+    }
+  }
 
   const appDetails = {}
   for (const application of applications) {
